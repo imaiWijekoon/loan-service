@@ -7,7 +7,20 @@ exports.checkoutBook = async (req, res, next) => {
     if (!bookId || !memberId) {
       return res.status(400).json({ error: 'bookId and memberId are required' });
     }
-    const loan = new Loan({ bookId, memberId, status: 'active' });
+
+    // Automatically set loan date and due date (14 days from now)
+    const loanDate = new Date();
+    const dueDate = new Date();
+    dueDate.setDate(loanDate.getDate() + 14);
+
+    const loan = new Loan({ 
+      bookId, 
+      memberId, 
+      loanDate,
+      dueDate, 
+      status: 'active' 
+    });
+
     const savedLoan = await loan.save();
     res.status(201).json(savedLoan);
   } catch (error) {
@@ -24,7 +37,7 @@ exports.returnBook = async (req, res, next) => {
       return res.status(404).json({ error: 'Loan not found' });
     }
     
-    // If already returned
+    // Check if book is already marked as returned
     if (loan.status === 'returned') {
       return res.status(400).json({ error: 'Book already returned' });
     }
@@ -33,7 +46,7 @@ exports.returnBook = async (req, res, next) => {
     loan.status = 'returned';
     const updatedLoan = await loan.save();
     
-    // Optionally call Book Service here to increment available copies
+    // Note: If you have a Book Service, call it here to increment available copies
     
     res.status(200).json(updatedLoan);
   } catch (error) {
